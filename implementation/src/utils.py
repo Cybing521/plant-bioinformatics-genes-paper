@@ -1,0 +1,62 @@
+"""通用工具：设备、随机种子、指标计算。"""
+import logging
+import random
+from pathlib import Path
+
+import numpy as np
+import torch
+
+logger = logging.getLogger("plantdl")
+
+
+def setup_logging(level=logging.INFO):
+    logging.basicConfig(level=level,
+                        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+
+
+def set_seed(seed: int):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+
+
+def get_device(pref: str = "auto") -> torch.device:
+    if pref == "auto":
+        if torch.cuda.is_available():
+            return torch.device("cuda")
+        if getattr(torch.backends, "mps", None) and torch.backends.mps.is_available():
+            return torch.device("mps")
+        return torch.device("cpu")
+    return torch.device(pref)
+
+
+def compute_metrics(y_true: np.ndarray, y_prob: np.ndarray, y_reg: np.ndarray | None = None,
+                    y_reg_pred: np.ndarray | None = None) -> dict:
+    """分类指标(accuracy/AUROC/AUPRC) 或 回归指标(R²)。y_prob 为类别 1 概率。"""
+    from sklearn.metrics import accuracy_score, roc_auc_score, average_precision_score, r2_score
+    # 回归：只算 R²（避免对连续标签误算分类指标）
+    if y_reg is not None and y_reg_pred is not None:
+        y_reg = np.asarray(y_reg)
+        y_reg_pred = np.asarray(y_reg_pred)
+        return {"r2": float(r2_score(y_reg, y_reg_pred))}
+
+    # 分类
+    y_true = np.asarray(y_true)
+    y_prob = np.asarray(y_prob)
+    y_pred = (y_prob >= 0.5).astype(int)
+    m = {"accuracy": float(accuracy_score(y_true, y_pred))}
+    if len(np.unique(y_true)) > 1:
+        m["auroc"] = float(roc_auc_score(y_true, y_prob))
+        m["auprc"] = float(average_precision_score(y_true, y_prob))
+    else:
+        m["auroc"] = m["auprc"] = float("nan")
+    return m
+
+
+def save_checkpoint(state: dict, path: str | Path):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    torch.save(state, path)
+    logger.info("已保存模型 -> %s", path)

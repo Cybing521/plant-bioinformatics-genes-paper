@@ -1,0 +1,563 @@
+% !TEX program = xelatex
+% 研究方案 v2.0：基于可解释深度学习与 DNA 大模型的拟南芥顺式调控代码解码及调控变异效应预测
+% 对应文档：研究方案_定稿.md（2026-08-05 定稿）
+\documentclass[UTF8,11pt,a4paper]{ctexart}
+
+% ---------- 宏包 ----------
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{graphicx}
+\usepackage[table]{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric}
+\usepackage{enumitem}
+\usepackage{caption}
+\captionsetup{font=small,labelsep=quad}
+\usepackage[colorlinks=true,linkcolor=black,citecolor=black,urlcolor=blue]{hyperref}
+
+\setlist{nosep,leftmargin=2em}
+
+% 表格行距
+\renewcommand{\arraystretch}{1.2}
+
+% ---------- 标题 ----------
+\title{\textbf{基于可解释深度学习与 DNA 大模型的\\拟南芥顺式调控代码解码及调控变异效应预测\\——研究方案设计报告}}
+\author{姓名：\underline{\hspace{2cm}}\quad 学号：\underline{\hspace{2.8cm}}\\[0.4em]
+专业：\underline{\hspace{2cm}}\quad 指导教师：\underline{\hspace{2cm}}}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+% ================================================================
+\begin{abstract}
+\noindent
+植物基因组中非编码区承载着决定基因"何时、何地、以何种水平表达"的顺式调控信息，而"序列—调控"的映射规律至今仍未完全解码。本课题以模式植物拟南芥（\emph{Arabidopsis thaliana}）为研究对象，从基因侧翼序列（启动子、5′UTR、3′UTR、终止子）出发，构建"序列 $\rightarrow$ 表达水平"的端到端深度学习预测模型，系统解码决定表达高低的顺式调控代码，并进一步预测调控变异（SNP/InDel）对表达的影响。课题包含四大研究内容：（i）自建拟南芥侧翼序列—表达数据集与官方 PGB 标准基准的双轨数据体系（染色体级防泄漏划分）；（ii）统一基准下 1D-CNN 基线（DeepSEA/Basenji 风格）与农业 DNA 大模型 AgroNT（LoRA 微调）的系统对比，覆盖分类/回归双任务与性能—成本权衡；（iii）DeepLIFT 归因 $\rightarrow$ 区域重要性量化 $\rightarrow$ TF-MoDISco 模体发现 $\rightarrow$ DAP-seq/JASPAR 比对的可解释性链路；（iv）以 1001 Genomes 自然变异与公开 eQTL 数据验证 in silico 变异效应打分的纯干实验闭环，并考察跨物种泛化。课题全程为纯干实验、机器学习主体，单张 24\,GB 消费级 GPU 可行，总工作量约 20 周，面向中科院三区期刊（首选 Genes, MDPI）发表。
+\end{abstract}
+
+\vspace{0.5em}
+\noindent\textbf{关键词：}拟南芥；顺式调控代码；基因表达预测；DNA 大模型；可解释性；调控变异效应；纯干实验
+
+\tableofcontents
+\newpage
+
+% ================================================================
+\section*{0. 一页总结}
+\addcontentsline{toc}{section}{0.~一页总结}
+
+以模式植物\textbf{拟南芥（\emph{Arabidopsis thaliana}）}为对象，从基因侧翼序列（启动子、5′UTR、3′UTR、终止子）出发，构建"序列 $\rightarrow$ 表达水平"的端到端深度学习预测模型，系统解码决定表达高低的\textbf{顺式调控代码}，并进一步预测\textbf{调控变异（SNP/InDel）对表达的影响}，用 1001 Genomes 自然变异与公开 eQTL 数据进行纯干实验验证。
+
+\begin{table}[htbp]
+\centering
+\caption{方案定位总览}
+\label{tab:overview}
+\small
+\begin{tabular}{@{}p{3.2cm}p{11.0cm}@{}}
+\toprule
+\textbf{维度} & \textbf{内容} \\
+\midrule
+研究对象 & 拟南芥（\emph{Arabidopsis thaliana}），TAIR10/Araport11 注释，约 2.7 万个基因 \\
+研究范式 & 纯干实验，机器学习主体，无需湿实验，单卡 GPU 可行 \\
+四大研究内容 & ① 数据与基准构建；② 统一基准模型对比（CNN vs AgroNT）；③ 可解释性解码；④ 调控变异效应预测与验证（差异化亮点） \\
+目标期刊 & 首选 \textbf{Genes (MDPI)}（中科院 3 区，Takou 2025 同类型工作即发表于此）；备选 Frontiers in Genetics、BMC Genomics、Planta、Scientific Reports \\
+工作量 & 约 20 周（含投稿前准备），核心 GPU 计算约 6--8 周 \\
+预期产出 & 可复现管线 + 训练模型 + 统一基准评估 + 模体清单/区域重要性 + 变异效应图谱 + 论文 1 篇（4--5 主图 + 2--3 附图） \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{关键差异化}（相对 2025 年 DeepPlantCRE、nemo、GenoRetriever 等同类工作）：强调\textbf{统一基准下 CNN 与 DNA 大模型的系统对比}与\textbf{以自然变异/eQTL 数据做变异效应验证}，而不仅是"预测 + 模体发现"。
+
+% ================================================================
+\section{选题背景与研究意义}
+\label{sec:intro}
+
+\subsection{研究背景}
+\label{sec:intro-bg}
+
+植物基因组中编码区占比小，占主体的非编码区承载着决定基因"何时、何地、以何种水平表达"的顺式调控信息，由\textbf{顺式调控元件}（cis-regulatory element，CRE）——启动子、5′UTR、3′UTR、终止子等共同介导。解析 CRE 的序列编码规律，是理解基因表达调控、解释自然变异如何影响表型的前提，也是"从基因组到表型"预测的核心一环\cite{marand2023}。
+
+以卷积神经网络（CNN）为代表的深度学习方法已在哺乳动物基因组上证明：仅凭 DNA 序列即可高精度预测转录因子结合、染色质状态与基因表达\cite{zhou2015,avsec2021}。在植物中，Peleke 等（2024）证明从基因侧翼序列预测拟南芥、番茄、高粱、玉米的\textbf{基础表达水平}（高/低二分类）准确率可达 80\% 以上（AUROC 0.92--0.94），并通过 DeepLIFT 与 TF-MoDISco 识别出与已知转录因子结合位点一致的表达相关模体\cite{peleke2024}。
+
+本课题在该范式之上，向两个方向深化：
+\begin{enumerate}
+\item \textbf{方法纵深}：在统一基准上系统对比 1D-CNN 与农业 DNA 大模型（AgroNT\cite{mendoza2024}），给出可复用的性能—成本参照；
+\item \textbf{应用延伸}：将模型延伸为\textbf{调控变异效应预测}工具，用 1001 Genomes 自然变异与公开 eQTL 数据形成纯干实验验证闭环。
+\end{enumerate}
+
+\subsection{研究意义}
+\label{sec:intro-sig}
+
+\begin{enumerate}
+\item \textbf{科学意义}：量化"哪些区域（启动子/UTR/终止子）、哪些模体、以何种组合决定表达水平"，推进植物顺式调控代码的解析，回答表达调控的序列编码这一基础问题。
+\item \textbf{方法意义}：首次在统一植物基准（PGB\cite{pgb2024}）上给出 1D-CNN 与 DNA 大模型（AgroNT）的性能—成本权衡，为植物基因组深度学习建模提供参照基准\cite{mendoza2024}。
+\item \textbf{应用价值}：模型可用于（i）新基因组中未注释基因的表达预判；（ii）\textbf{非编码变异的调控效应打分与优先排序}，为关联分析结果提供功能解释，服务分子设计育种。
+\end{enumerate}
+
+% ================================================================
+\section{国内外研究现状与本课题差异化}
+\label{sec:survey}
+
+\subsection{研究现状}
+\label{sec:survey-state}
+
+\begin{enumerate}
+\item \textbf{基础表达预测已可靠}：Peleke 2024 四物种 CNN 模型，以侧翼序列（启动子 1\,kb + 5′UTR 0.5\,kb + 3′UTR 0.5\,kb + 终止子 1\,kb）预测高/低表达，分类准确率 $>$80\%，含跨物种迁移与基因型间表达预测；归因发现 UTR 是重要性最高的侧翼特征\cite{peleke2024}。
+\item \textbf{条件性表达预测仍有挑战}：Takou 2025 从五个自然生态型的近端序列预测冷响应差异表达基因，测试集 prAUC 仅约 0.70；作者指出需整合染色质状态等额外信息，说明环境响应性表达预测难度显著高于基础表达预测\cite{takou2025}。
+\item \textbf{DNA 大模型兴起}：AgroNT（1B 参数 Transformer，48 物种预训练，6-mer token）在 PGB 的 8 类任务上达 SOTA，支持零样本变异效应评估\cite{mendoza2024}；PGB 提供了标准化的植物基因组基准任务与官方划分\cite{pgb2024}。
+\item \textbf{2025 年同类工作竞争加剧}：GenoRetriever 用可解释深度学习解码转录起始调控并识别 27 个核心启动子模体\cite{genoretriever2025}；DeepPlantCRE 用 Transformer-CNN 混合框架做跨物种表达预测与 CRE 提取\cite{deepcre2025}；nemo 用分支 CNN + Shapley 归因捕捉启动子/终止子的位置特异效应\cite{nemo2025}。
+\end{enumerate}
+
+\subsection{2025 年同类工作与本课题对比}
+\label{sec:survey-compare}
+
+\begin{table}[htbp]
+\centering
+\caption{与本课题最相近的 2025 年同类工作对比}
+\label{tab:competitors}
+\small
+\begin{tabular}{@{}p{2.4cm}p{2.8cm}p{2.9cm}p{2.9cm}p{3.2cm}@{}}
+\toprule
+\textbf{工作} & \textbf{架构} & \textbf{任务} & \textbf{可解释性} & \textbf{变异效应验证} \\
+\midrule
+GenoRetriever (2025) & 可解释 DL & 转录起始调控解码 & 模体发现（27 个核心启动子模体）+ 实验验证 & 无 \\
+DeepPlantCRE (预印本) & Transformer-CNN 混合 & 跨物种表达预测 & CRE 提取 & 无 \\
+nemo (预印本) & 分支 CNN & 表达预测 & Shapley 位置特异归因 & 无 \\
+Takou 2025 & CNN & 冷响应差异表达 & 模体分析 & 自然变异关联 \\
+\midrule
+\textbf{本课题} & \textbf{CNN + AgroNT 统一对比} & \textbf{双任务（分类/回归）} & \textbf{区域重要性 + 模体} & \textbf{1001 Genomes + eQTL 验证} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{现有工作的不足与本课题切入点}
+\label{sec:survey-gap}
+
+\begin{table}[htbp]
+\centering
+\caption{现有工作不足与本课题对策}
+\label{tab:gap}
+\small
+\begin{tabular}{@{}p{8.0cm}p{6.2cm}@{}}
+\toprule
+\textbf{现有工作的不足} & \textbf{本课题对策} \\
+\midrule
+多数工作只用单一架构，缺乏统一基准下 CNN vs DNA 大模型的系统对比 & 在 PGB 标准基准 + 自建数据集上做双任务、多指标的严格对比，给出性能—成本权衡 \\
+可解释性多停留在模体发现，少有人量化"区域贡献" & DeepLIFT 归因聚合到区域级（启动子/UTR/终止子），量化各区域对表达的相对贡献 \\
+变异效应预测与自然变异验证（eQTL）结合少，缺乏纯干实验闭环 & 用 1001 Genomes + 公开 eQTL 数据验证模型 SNP 效应打分，替代湿实验 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ================================================================
+\section{研究目标与研究内容}
+\label{sec:objective}
+
+\subsection{总体目标}
+\label{sec:objective-overall}
+
+构建并评估一个\textbf{可解释、可迁移}的拟南芥"序列 $\rightarrow$ 表达"深度学习模型：在统一基准上系统对比 CNN 与 DNA 大模型；结合归因分析量化区域与模体贡献，解码顺式调控代码；并输出可验证的\textbf{调控变异效应预测}，形成纯干实验的应用闭环。
+
+\subsection{研究内容一：数据与基准构建}
+\label{sec:obj-data}
+
+\begin{itemize}
+\item \textbf{基因组/注释}：TAIR10 / Araport11（Ensembl Plants 提取），约 2.7 万个基因。
+\item \textbf{自建数据集}：提取每个基因侧翼序列（启动子 1\,kb + 5′UTR 0.5\,kb + 3′UTR 0.5\,kb + 终止子 1\,kb，共约 3\,kb，与 Peleke 口径一致）；表达量来自公开转录组（叶片、根等多组织 RNA-seq，GEO/Expression Atlas），构建高/低表达二分类标签（中位数阈值）与归一化表达量回归标签。
+\item \textbf{标准基准}：接入 PGB 拟南芥基因表达任务（6\,kb 序列，训练 25,731 / 验证 3,401 / 测试 3,402）作为独立测试床\cite{pgb2024}。
+\item \textbf{防泄漏}：染色体级划分训练/验证/测试；剔除同源基因簇，避免序列同源导致的信息泄漏（沿用 Peleke 方案）\cite{peleke2024}。
+\end{itemize}
+
+\subsection{研究内容二：统一基准模型对比}
+\label{sec:obj-model}
+
+\begin{itemize}
+\item \textbf{1D-CNN 基线}：实现 DeepSEA 风格（3 卷积块 + 池化 + 全连接）与 Basenji 风格（多卷积块 + 残差）两种基线\cite{zhou2015,avsec2021}。
+\item \textbf{DNA 大模型微调}：AgroNT-1B 在目标任务上做轻量微调（LoRA 低秩适配，冻结主干，单卡可跑）\cite{mendoza2024}。
+\item \textbf{双任务评估}：分类（准确率/AUROC/AUPRC）+ 回归（R²/Pearson）；同时统计参数量、FLOPs、训练时间，输出性能—成本权衡。
+\item \textbf{预期指标}：参照 Peleke 水平设定——测试集分类准确率 $\geq$80\%、AUROC $\geq$0.90（\emph{预期}标准，以实际结果为准）\cite{peleke2024}。
+\end{itemize}
+
+\subsection{研究内容三：可解释性与调控代码解码}
+\label{sec:obj-interp}
+
+\begin{itemize}
+\item \textbf{归因}：DeepLIFT/DeepSHAP 计算碱基级贡献得分\cite{shrikumar2017}。
+\item \textbf{区域重要性}：将归因得分按启动子/5′UTR/3′UTR/终止子聚合，量化各区域对表达的相对贡献（延伸 Peleke 的 UTR 重要性发现）\cite{peleke2024}。
+\item \textbf{模体发现与验证}：TF-MoDISco 聚类归因序列发现表达相关模体，与 PlantCistrome DAP-seq peaks、JASPAR 植物模体比对（STREME/TOMTOM），确认生物真实性\cite{omalley2016}。
+\end{itemize}
+
+\subsection{研究内容四：调控变异效应预测与自然变异验证（差异化亮点）}
+\label{sec:obj-variant}
+
+\begin{itemize}
+\item \textbf{in silico 变异打分}：对基因侧翼区内 SNP/InDel 逐一替换参考序列，计算模型预测差异（$\Delta$表达概率/$\Delta$表达量），输出全基因组调控变异效应图谱。
+\item \textbf{自然变异验证}：结合 1001 Genomes 拟南芥自然变异（约千余生态型），检验模型打分能否区分与 eQTL 关联的变异，验证其调控效应预测能力。
+\item \textbf{跨物种泛化}：将拟南芥训练模型迁移至水稻/玉米（PGB 数据或侧翼序列），分析调控代码的保守性与物种特异性。
+\end{itemize}
+
+% ================================================================
+\section{技术路线}
+\label{sec:route}
+
+整体技术路线如图~\ref{fig:pipeline}：数据自公开资源汇聚，经编码与防泄漏划分构建双轨数据集；模型层面并行开展 1D-CNN 基线与 AgroNT 微调，在统一基准上完成双任务评估；随后向可解释性分析、变异效应预测与跨物种迁移三个方向延伸，最终支撑论文撰写与投稿。
+
+\begin{figure}[htbp]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+  box/.style={draw, rectangle, rounded corners=2pt, fill=white, text width=5.4cm, align=center, inner sep=5pt, font=\small},
+  box2/.style={draw, rectangle, rounded corners=2pt, fill=white, text width=4.4cm, align=center, inner sep=5pt, font=\small},
+  arr/.style={-{Stealth[length=2.5mm]}, thick},
+  node distance=7mm
+]
+\node[box] (d1) {\textbf{数据来源}\\ TAIR10/Araport11 基因组与注释、公开转录组\\ PGB 标准基准、1001 Genomes、\\ PlantCistrome DAP-seq / JASPAR};
+\node[box, below=of d1] (d2) {\textbf{数据处理与编码}\\ 侧翼序列提取（启动子/UTR/终止子）\\ One-hot 序列编码\\ 高/低表达二分类 + 表达量回归标签};
+\node[box, below=of d2] (d3) {\textbf{数据集构建}\\ 自建侧翼序列数据集 + PGB 官方基准\\ 染色体级划分 + 同源基因剔除（防泄漏）};
+\node[box2, below left=1.0cm and 0.15cm of d3] (m1) {\textbf{1D-CNN 基线}\\ DeepSEA / Basenji 风格\\ 参数少、训练快、便于归因};
+\node[box2, below right=1.0cm and 0.15cm of d3] (m2) {\textbf{AgroNT-1B 微调}\\ 预训练大模型 + LoRA 低秩适配\\ 冻结主干、单卡可行};
+\node[box, below=1.5cm of d3] (e1) {\textbf{统一基准评估}\\ 分类：Acc / AUROC / AUPRC\\ 回归：R² / Pearson\\ 性能—成本：参数量 / FLOPs / 训练时间};
+\node[box2, below left=1.0cm and 0.15cm of e1] (b1) {\textbf{可解释性解码}\\ DeepLIFT 归因\\ 区域重要性（启动子/UTR/终止子）\\ TF-MoDISco 模体 + DAP-seq/JASPAR 比对};
+\node[box2, below=1.0cm of e1, xshift=-0.2cm] (b2) {\textbf{变异效应预测}\\ in silico SNP/InDel 扰动打分\\ 1001 Genomes + eQTL 验证\\ 全基因组调控变异效应图谱};
+\node[box2, below right=1.0cm and 0.15cm of e1] (b3) {\textbf{跨物种迁移}\\ 水稻 / 玉米\\ 调控代码保守性分析};
+\node[box, below=1.6cm of b2, text width=8.5cm] (f) {\textbf{论文撰写与投稿}\\ 对标中科院三区（首选 Genes, MDPI）\\ 4--5 幅主图 + 2--3 幅附图};
+\draw[arr] (d1)--(d2);
+\draw[arr] (d2)--(d3);
+\draw[arr] (d3)--(m1);
+\draw[arr] (d3)--(m2);
+\draw[arr] (m1)--(e1);
+\draw[arr] (m2)--(e1);
+\draw[arr] (e1)--(b1);
+\draw[arr] (e1)--(b2);
+\draw[arr] (e1)--(b3);
+\draw[arr] (b1.south) |- (f.west);
+\draw[arr] (b2.south) -- (f.north);
+\draw[arr] (b3.south) |- (f.east);
+\end{tikzpicture}}
+\caption{课题技术路线示意：双轨数据 $\rightarrow$ 双模型统一基准对比 $\rightarrow$ 可解释性 / 变异效应 / 跨物种三线分析 $\rightarrow$ 论文产出。}
+\label{fig:pipeline}
+\end{figure}
+
+% ================================================================
+\section{数据来源与方法详述}
+\label{sec:method}
+
+\subsection{数据资源汇总}
+\label{sec:method-data}
+
+主要数据资源、获取方式与用途汇总于表~\ref{tab:data}，全部为公开资源，无需湿实验。
+
+\begin{table}[htbp]
+\centering
+\caption{数据资源汇总}
+\label{tab:data}
+\small
+\begin{tabular}{@{}p{3.0cm}p{4.6cm}p{3.4cm}p{2.8cm}@{}}
+\toprule
+\textbf{数据资源} & \textbf{内容} & \textbf{获取方式} & \textbf{用途} \\
+\midrule
+TAIR10 / Araport11 & 参考基因组、基因结构注释 & Ensembl Plants / arabidopsis.org & 侧翼序列提取 \\
+公开转录组 & 多组织表达量（叶片、根等） & GEO / Expression Atlas / AtGenExpress & 表达标签 \\
+PGB (InstaDeepAI) & 拟南芥基因表达任务（6\,kb，约 2.5 万训练样本） & HuggingFace datasets & 标准测试床 \\
+1001 Genomes & 约千余生态型全基因组变异 & 1001genomes.org & 变异效应验证 \\
+eQTL 数据 & 拟南芥公开 eQTL 结果 & 公开研究（如 Kawakatsu 2016 等） & 变异效应验证 \\
+PlantCistrome & DAP-seq 结合峰（约千余 TF） & \url{neomorph.salk.edu/PlantCistromeDB} & 模体验证 \\
+JASPAR 植物 & 已知 TF 结合模体 & \url{jaspar.genereg.net} & 模体验证 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{特征与标签}
+\label{sec:method-feat}
+
+\begin{itemize}
+\item \textbf{输入}：One-hot 编码的基因侧翼序列。自建数据集为约 3\,kb（启动子 1\,kb + 5′UTR 0.5\,kb + 3′UTR 0.5\,kb + 终止子 1\,kb），PGB 任务为 6\,kb 基因窗口。
+\item \textbf{分类标签}：以训练集全基因表达量中位数为阈值，划分高/低表达二分类标签 $y \in \{0,1\}$。
+\item \textbf{回归标签}：归一化（log 变换）的每基因平均表达量 $\tilde{y} \in \mathbb{R}$。
+\item \textbf{划分策略}：按染色体整体划分训练/验证/测试集，并剔除同源基因簇，防止因序列同源导致的标签泄漏\cite{peleke2024}。
+\end{itemize}
+
+\subsection{模型架构}
+\label{sec:method-model}
+
+\textbf{（1）1D-CNN 基线}\quad 参考 DeepSEA\cite{zhou2015} 与 Basenji\cite{avsec2021} 架构：
+\begin{itemize}
+\item DeepSEA 风格：3 个卷积块（1D 卷积 + BatchNorm + ReLU + 最大池化）$\rightarrow$ 全局最大池化 $\rightarrow$ 两层全连接头；
+\item Basenji 风格：多卷积块 + 残差连接，捕获更长距离的调控上下文；
+\item 特点：参数少（百万级）、训练快、梯度流简单、便于 DeepLIFT 归因。
+\end{itemize}
+
+\textbf{（2）DNA 大模型 AgroNT-1B}\quad 加载 HuggingFace 预训练权重\cite{mendoza2024}：
+\begin{itemize}
+\item 985M 参数 Transformer，40 层自注意力，6-mer token 词表，1024 token 上下文窗口；
+\item 采用 LoRA 低秩适配微调：冻结主干权重，仅训练注入到自注意力的 q/k/v/o 投影上的低秩矩阵（rank 16, $\alpha$=32）与轻量分类头，可训练参数占比约 1\%--2\%；
+\item 配合梯度检查点、混合精度（bf16）与梯度累积，单张 24\,GB 显存 GPU 即可完成微调。
+\end{itemize}
+
+\subsection{训练与优化}
+\label{sec:method-train}
+
+\begin{itemize}
+\item \textbf{分类损失}（交叉熵）：
+\begin{equation}
+\mathcal{L}_{\mathrm{CE}} = -\frac{1}{N}\sum_{i=1}^{N}\bigl[\, y_i \log \hat{p}_i + (1-y_i)\log(1-\hat{p}_i)\,\bigr]
+\end{equation}
+\item \textbf{回归损失}（均方误差）：
+\begin{equation}
+\mathcal{L}_{\mathrm{MSE}} = \frac{1}{N}\sum_{i=1}^{N}\bigl(\hat{y}_i - y_i\bigr)^2
+\end{equation}
+\item \textbf{优化器}：AdamW（CNN 用 lr $10^{-3}$、weight decay $10^{-4}$；AgroNT 用 lr $2\times10^{-4}$、weight decay 0.01），配合早停（监控验证集 AUROC）与学习率衰减。
+\item \textbf{算力}：单张 RTX 4090/3090（24\,GB）即可；CNN 分钟级训练，AgroNT LoRA 微调数小时级，必要时启用梯度累积与混合精度。
+\end{itemize}
+
+\subsection{评估指标}
+\label{sec:method-eval}
+
+\begin{itemize}
+\item \textbf{准确率}：$\mathrm{Acc} = \dfrac{\mathrm{TP}+\mathrm{TN}}{\mathrm{TP}+\mathrm{TN}+\mathrm{FP}+\mathrm{FN}}$；
+\item \textbf{AUROC}：以真正例率 TPR 对假正例率 FPR 的 ROC 曲线下面积，度量正负样本可分性；
+\item \textbf{AUPRC}：以精确率对召回率的 PR 曲线下面积，对类别不平衡更敏感；
+\item \textbf{回归指标}：$R^2 = 1 - \dfrac{\sum_i(\hat{y}_i-y_i)^2}{\sum_i(y_i-\bar{y})^2}$ 与 Pearson 相关系数；
+\item \textbf{性能—成本}：参数量、FLOPs、单 epoch 训练时间、峰值显存，四维对比 CNN 与 AgroNT。
+\end{itemize}
+
+\subsection{可解释性方法}
+\label{sec:method-interp}
+
+\begin{enumerate}
+\item \textbf{DeepLIFT 归因}：通过激活差异的反向传播计算每个输入碱基对预测的贡献得分\cite{shrikumar2017}。以 One-hot 序列为输入，参考背景取平均碱基频率：
+\begin{equation}
+C_i = \text{DeepLIFT}_f(x)_i \approx \frac{\partial \hat{f}(x)}{\partial x_i}\bigl(x_i - \bar{x}_i\bigr)
+\end{equation}
+\item \textbf{区域重要性}：将碱基级归因得分按启动子、5′UTR、3′UTR、终止子聚合（求和后按区域长度归一化），量化各区域对表达的相对贡献。
+\item \textbf{模体发现与验证}：TF-MoDISco 对高贡献序列聚类，发现表达相关模体；用 TOMTOM 与 JASPAR 植物模体库、PlantCistrome DAP-seq 峰（STREME 富集分析）比对，验证模体的生物真实性\cite{omalley2016}。
+\end{enumerate}
+
+\subsection{变异效应预测方法}
+\label{sec:method-variant}
+
+\begin{enumerate}
+\item \textbf{in silico 扰动打分}：对基因侧翼区内每个 SNP/InDel，将参考序列逐一替换为变异序列，计算模型预测差异：
+\begin{equation}
+\Delta E(x, x^{\mathrm{var}}) = f(x^{\mathrm{var}}) - f(x)
+\end{equation}
+输出全基因组"调控变异效应图谱"（效应方向、幅度与所在区域）。
+\item \textbf{自然变异验证}：以 1001 Genomes 常见变异与公开 eQTL 关联变异为功能变异集合，检验模型打分能否显著区分功能变异与非功能变异（Wilcoxon/Mann-Whitney 秩和检验、AUPRC 排序指标），构成纯干实验证据链。
+\item \textbf{跨物种泛化}：将拟南芥训练模型零样本迁移至水稻/玉米 PGB 表达任务，评估调控代码跨物种保守性。
+\end{enumerate}
+
+% ================================================================
+\section{预期成果与图件规划}
+\label{sec:output}
+
+\subsection{预期成果}
+\label{sec:output-list}
+
+\begin{enumerate}
+\item 可复现的拟南芥"序列 $\rightarrow$ 表达"数据构建与训练管线（代码开源，含数据集下载脚本）；
+\item 训练完成的 1D-CNN 与 AgroNT 微调模型 + 统一基准评估结果（分类/回归双任务、性能—成本权衡）；
+\item 表达相关顺式模体清单、区域重要性分析与全基因组调控变异效应图谱；
+\item 投稿中科院三区期刊的研究论文 1 篇（4--5 幅主图 + 2--3 幅附图）。
+\end{enumerate}
+
+\subsection{图件规划（4--5 主图 + 2--3 附图）}
+\label{sec:output-figures}
+
+\begin{table}[htbp]
+\centering
+\caption{论文图件规划}
+\label{tab:figures}
+\small
+\begin{tabular}{@{}p{2.0cm}p{4.4cm}p{7.8cm}@{}}
+\toprule
+\textbf{图} & \textbf{内容} & \textbf{说明} \\
+\midrule
+图 1 & 研究概览与技术路线 & 概念图，串联四大研究内容 \\
+图 2 & 数据集构建与基准 & 数据统计、防泄漏划分示意、任务设置 \\
+图 3 & 统一基准模型性能 & 分类/回归指标对比 + 性能—成本散点（CNN vs AgroNT） \\
+图 4 & 可解释性解码 & 归因示例、区域重要性条形图、TF-MoDISco 模体与 DAP-seq/JASPAR 比对 \\
+图 5 & 变异效应预测与验证 & SNP 打分分布、eQTL/1001 Genomes 验证、跨物种泛化 \\
+附图 & 超参与消融 / 更多模体表 / 全基因组变异效应图 & 补充材料 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ================================================================
+\section{工作量拆解与进度安排}
+\label{sec:plan}
+
+对标 3 区论文，总计约 \textbf{20 周}（含投稿前准备），核心计算工作量约 6--8 周（GPU 运行），其余为数据、分析与撰写。
+
+\begin{table}[htbp]
+\centering
+\caption{研究进度安排（20 周）}
+\label{tab:schedule}
+\small
+\begin{tabular}{@{}p{3.2cm}p{2.0cm}p{7.2cm}p{1.8cm}@{}}
+\toprule
+\textbf{阶段} & \textbf{时间} & \textbf{主要工作} & \textbf{里程碑} \\
+\midrule
+文献与环境 & 第 1--2 周 & 精读核心文献；搭建 GPU 环境；下载数据资源 & 环境就绪 \\
+数据构建 & 第 3--5 周 & 侧翼序列提取、表达标签、PGB 接入、防泄漏划分 & 数据集完成 \\
+1D-CNN 基线 & 第 6--8 周 & DeepSEA/Basenji 风格 CNN 实现、训练、调优 & 基线达预期指标 \\
+AgroNT 微调与对比 & 第 9--11 周 & LoRA 微调、统一基准评估、性能—成本分析 & 图 3 完成 \\
+可解释性 & 第 12--13 周 & DeepLIFT 归因、区域重要性、TF-MoDISco、DAP-seq/JASPAR 验证 & 图 4 完成 \\
+变异效应与应用 & 第 14--15 周 & in silico 打分、1001 Genomes + eQTL 验证、跨物种迁移 & 图 5 完成 \\
+撰写与投稿 & 第 16--20 周 & 图件定稿、论文撰写、选刊与投稿 & 投稿完成 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ================================================================
+\section{可行性分析}
+\label{sec:feasibility}
+
+\begin{enumerate}
+\item \textbf{数据可行}：全部为公开资源（TAIR10、PGB、1001 Genomes、PlantCistrome、eQTL），无需湿实验；2026-08-05 已实测 PGB（经 hf-mirror 镜像）、TAIR10、JASPAR 可直接下载，表达矩阵可从 PGB FASTA 头直接提取。
+\item \textbf{方法可行}：DeepSEA/Basenji 风格 CNN 有成熟开源实现；AgroNT 提供公开预训练权重，LoRA 微调技术成熟\cite{mendoza2024}；归因（DeepLIFT/captum）与模体发现（TF-MoDISco/TOMTOM）均有标准工具链。
+\item \textbf{算力可行}：单物种约 2.7 万基因、序列 3--6\,kb，CNN 单卡 GPU 分钟级训练；AgroNT LoRA 微调单卡（24\,GB）可行，AutoDL 按小时计费可控。
+\item \textbf{性能预期有据}：Peleke 已报道拟南芥分类准确率 $>$80\%、AUROC 0.92--0.94\cite{peleke2024}，本方案目标明确，AgroNT 在 PGB 上已有 SOTA 记录\cite{mendoza2024}。
+\item \textbf{纯干实验可信度}：以 PGB 独立基准 + 1001 Genomes 自然变异 + eQTL 三重计算验证补强证据链，符合无湿实验条件下审稿人对验证充分性的要求。
+\end{enumerate}
+
+% ================================================================
+\section{风险与对策}
+\label{sec:risk}
+
+\begin{table}[htbp]
+\centering
+\caption{主要风险与对策}
+\label{tab:risk}
+\small
+\begin{tabular}{@{}p{5.2cm}p{1.4cm}p{7.6cm}@{}}
+\toprule
+\textbf{风险} & \textbf{概率} & \textbf{对策} \\
+\midrule
+回归任务性能不佳 & 中 & 主结果用高/低表达分类任务；回归作补充 \\
+AgroNT 微调算力/时间超支 & 低 & LoRA 冻结主干 + 混合精度 + 梯度累积；必要时降输入长度 \\
+eQTL/自然变异验证不明显 & 中 & 备选验证：多生态型天然表达差异 / 跨物种迁移；三重验证取最优呈现 \\
+同类工作抢发（DeepPlantCRE 等） & 中 & 突出"统一基准 CNN vs 大模型 + 变异效应验证"差异化；尽快产出核心图 \\
+纯干实验被审稿人质疑 & 中 & 用独立基准 + 自然变异 + eQTL 三重计算证据链；附图补充敏感性/消融 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ================================================================
+\section{三区期刊定位与选刊建议}
+\label{sec:journal}
+
+\begin{table}[htbp]
+\centering
+\caption{目标期刊定位}
+\label{tab:journal}
+\small
+\begin{tabular}{@{}p{4.4cm}p{3.0cm}p{6.8cm}@{}}
+\toprule
+\textbf{期刊} & \textbf{分区} & \textbf{说明} \\
+\midrule
+\textbf{Genes (MDPI)}（首选） & 中科院 3 区（生物学） & Takou 2025 同类型工作（拟南芥 CNN 序列$\rightarrow$表达 + 模体发现）即发表于此\cite{takou2025}，接受纯干实验 ML 论文，审稿较快，开放获取 \\
+Frontiers in Genetics & 3 区 & 备选，接受组学与计算方法论文 \\
+BMC Genomics & 大类 2 区/小类 3 区 & 备选，依当年分区 \\
+Planta / Scientific Reports & 3 区 & 备选 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent\textbf{注意事项}：中科院分区每年更新，投稿前需以最新官方分区表为准；本方案工作量按 3 区标准设计，若分区变化或结果超出预期，可上探 2 区期刊（如 Plant Methods、BMC Plant Biology）。
+
+% ================================================================
+\section{前期基础与实现保障}
+\label{sec:prelim}
+
+本课题已具备以下前期基础，可显著降低实施风险：
+
+\begin{enumerate}
+\item \textbf{实现脚手架已就绪}：`implementation/` 目录提供一键可运行管线（数据下载 $\rightarrow$ 建集 $\rightarrow$ CNN 训练 $\rightarrow$ AgroNT LoRA 微调 $\rightarrow$ 统一评估 $\rightarrow$ 归因/模体 $\rightarrow$ 变异打分/eQTL 验证），对应论文图 2--5 的生成脚本均已预留。
+\item \textbf{数据可用性已实测}（2026-08-05）：PGB 拟南芥表达任务（hf-mirror 国内镜像直下）、TAIR10 基因组与 GFF、JASPAR 植物模体库均验证可下载；表达矩阵可直接从 PGB FASTA 头提取，无需额外下载。
+\item \textbf{算力方案已制定}：AutoDL RTX 4090/3090（24\,GB）单卡实例选型、镜像、数据盘规划均已写明；当前已有数据下载实例与训练实例各一。
+\item \textbf{参考文献已核验}：核心文献题录（DOI/PMID）已逐一核验，含 2025 年最新竞争工作（GenoRetriever、DeepPlantCRE、nemo、Takou 2025）。
+\end{enumerate}
+
+% ================================================================
+\section{总结}
+\label{sec:summary}
+
+本方案以拟南芥为对象，构建"序列 $\rightarrow$ 表达"的可解释深度学习模型：以统一基准下 CNN 与 DNA 大模型的系统对比为方法贡献，以区域重要性量化和模体发现为可解释性贡献，以 1001 Genomes + eQTL 数据支撑的调控变异效应预测为差异化亮点，形成\textbf{纯干实验、单卡可行、工作量可控、验证充分}的三区期刊级研究方案。
+
+% ================================================================
+\begin{thebibliography}{99}
+\small
+\setlength{\itemsep}{2pt}
+
+\bibitem{marand2023}
+Marand A P, Eveland A L, Kaufmann K, Springer N M.
+cis-Regulatory elements in plant development, adaptation, and evolution[J].
+\emph{Annual Review of Plant Biology}, 2023, 74: 111--137.
+
+\bibitem{peleke2024}
+Peleke F F, Zumkeller S M, Gültas M, Schmitt A, Szymański J.
+Deep learning the cis-regulatory code for gene expression in selected model plants[J].
+\emph{Nature Communications}, 2024, 15: 3488.
+
+\bibitem{zhou2015}
+Zhou J, Troyanskaya O G.
+Predicting effects of noncoding variants with deep learning-based sequence model[J].
+\emph{Nature Methods}, 2015, 12(10): 931--934.
+
+\bibitem{avsec2021}
+Avsec Ž, Agarwal V, Visentin D, Ledsam J R, Grabska-Barwińska A, et al.
+Effective gene expression prediction from sequence by integrating long-range interactions[J].
+\emph{Nature Methods}, 2021, 18(10): 1196--1203.
+
+\bibitem{mendoza2024}
+Mendoza-Revilla J, Trop E, Gonzalez L, Roller M, Dalla-Torre H, et al.
+A foundational large language model for edible plant genomes[J].
+\emph{Communications Biology}, 2024, 7: 835.
+
+\bibitem{pgb2024}
+InstaDeepAI.
+Plants Genomic Benchmark (PGB): Arabidopsis gene expression prediction task[EB/OL].
+HuggingFace: \url{https://huggingface.co/datasets/InstaDeepAI/plant-genomic-benchmark}.
+
+\bibitem{takou2025}
+Takou M, Bellis E S, Lasky J R.
+Predicting gene expression responses to cold in \emph{Arabidopsis thaliana} using natural variation in DNA sequence[J].
+\emph{Genes}, 2025, 16(9): 1108.
+
+\bibitem{shrikumar2017}
+Shrikumar A, Greenside P, Kundaje A.
+Learning important features through propagating activation differences[C].
+\emph{Proceedings of ICML}, 2017, 70: 3145--3153.
+
+\bibitem{omalley2016}
+O'Malley R C, Huang S C, Song L, Lewsey M G, Bartlett A, Nery J R, et al.
+Cistrome and epicistrome features shape the regulatory DNA landscape[J].
+\emph{Cell}, 2016, 165(5): 1280--1292.
+
+\bibitem{hu2023}
+Hu X, Fernie A R, Yan J.
+Deep learning in regulatory genomics: from identification to design[J].
+\emph{Current Opinion in Biotechnology}, 2023, 79: 102887.
+
+\bibitem{genoretriever2025}
+GenoRetriever authors.
+Deciphering the sequence basis and application of transcriptional initiation regulation in plant genomes through deep learning[J].
+\emph{Genome Biology}, 2025, 26: 293.
+
+\bibitem{deepcre2025}
+DeepPlantCRE authors.
+DeepPlantCRE: A Transformer-CNN hybrid framework for plant gene expression modeling and cross-species generalization[EB/OL].
+arXiv preprint arXiv:2505.09883, 2025.
+
+\bibitem{nemo2025}
+nemo authors.
+A deep learning model captures position-specific effects of plant regulatory sequences and suggests genes under complex regulation[EB/OL].
+bioRxiv preprint 2025.08.30.673246, 2025.
+
+\end{thebibliography}
+
+\end{document}

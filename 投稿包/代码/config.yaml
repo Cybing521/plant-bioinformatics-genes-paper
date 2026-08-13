@@ -1,0 +1,82 @@
+# =====================================================================
+# config.yaml — 拟南芥"序列→表达"预测 主配置
+# 路径均相对 implementation/ 根目录
+# =====================================================================
+
+seed: 42
+
+data:
+  # PGB 标准基准（HuggingFace，download_pgb.py 直接下载 FASTA 到本地）
+  pgb_dataset: "InstaDeepAI/plant-genomic-benchmark"
+  pgb_task: "gene_exp.arabidopsis_thaliana"   # 6kb 序列，表达值编码在 FASTA 头
+  pgb_dir: "data/pgb"                          # 本地 FASTA 目录
+
+  # TAIR10 / Araport11 自建数据集
+  genome_fasta: "data/tair10/TAIR10_Chr_all.fas"
+  gff3: "data/tair10/Araport11_GFF3_genes_transposons.gff3"
+  expression_tsv: "data/tair10/expression_matrix.tsv"   # 行=基因ID, 列=组织/样本
+  flanking:
+    promoter: 1000     # TSS 上游 bp
+    utr5: 500
+    utr3: 500
+    terminator: 1000   # TTS 下游 bp
+  min_expr_samples: 3  # 表达矩阵中至少有多少个样本非缺失才保留该基因
+  high_expr_quantile: 0.5   # 高/低表达二分类阈值（中位数）
+  max_seq_len: null          # PGB 序列截断长度；null=不截断（CNN 用完整 6000bp）
+
+  # 输出
+  out_dir: "data/dataset"
+
+model:
+  cnn:
+    input_len: 3000            # 与侧翼序列总长一致 (1000+500+500+1000)
+    conv_channels: [256, 256, 256]
+    kernel_size: 8
+    pool_size: 4
+    fc_dim: 256
+  agront:
+    model_id: "/root/autodl-tmp/agront_model"   # 本地路径（避免 huggingface 大文件下载中断）
+    lora_r: 16
+    lora_alpha: 32
+    lora_dropout: 0.1
+    target_modules: ["query", "key", "value", "dense"]   # ESM 架构注意力模块名（已核对 modeling_esm.py）
+    max_bp: 6144               # AgroNT 上下文 1024 tokens ≈ 6144 bp
+    gradient_checkpointing: true
+
+train:
+  task: "binary"               # binary | regression
+  batch_size: 64
+  epochs: 30
+  lr: 0.001
+  weight_decay: 0.0001
+  early_stop_patience: 5
+  num_workers: 4
+  device: "auto"               # auto | cuda | cpu | mps
+
+agront_train:
+  task: "binary"
+  batch_size: 4                # 1B 模型 LoRA（fp32，显存安全）
+  grad_accum: 8                # 有效 batch = 32
+  epochs: 3                    # 首次完整跑先跑 3 epoch（AgroNT 1B 很慢），可后续延长
+  lr: 0.0002
+  weight_decay: 0.01
+  early_stop_patience: 2
+  max_seq_len: 6000            # bp，与 CNN 输入一致（完整窗口）
+
+eval:
+  metrics: ["accuracy", "auroc", "auprc", "r2"]
+  out_csv: "results/benchmark_results.csv"
+
+interpret:
+  background_n: 200            # DeepSHAP 背景样本数
+  out_dir: "results/interpret"
+  # TF-MoDISco
+  modisco_seqlets: 2000
+  modisco_window: 400
+  jaspar_db: "data/motifs/JASPAR2024_plants.jaspar"   # TOMTOM 比对库（需下载）
+
+variants:
+  variants_tsv: "data/1001genomes/snps.tsv"   # 列: chr pos ref alt gene_id
+  eqtl_tsv: "data/eqtl/arabidopsis_eqtl.tsv"  # 列: chr pos ref alt 或 gene_id
+  out_dir: "results/variants"
+  batch_size: 512

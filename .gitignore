@@ -1,0 +1,14 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+node_modules/
+.work/
+*.zip
+*.aux
+*.log
+*.out
+*.toc
+*.bbl
+*.blg
