@@ -2,7 +2,7 @@
 
 对应研究方案：`../研究方案_定稿.md`（三区期刊目标 · 纯干实验 · 机器学习主体）
 
-本仓库提供可一键运行的完整脚手架：数据下载 → 数据集构建 → **1D-CNN 与 AgroNT 大模型统一基准对比** → 可解释性（归因/区域重要性/TF-MoDISco）→ **in silico 变异效应预测与 eQTL 验证**。
+本仓库提供可一键运行的完整脚手架：数据下载 → 数据集构建 → **1D-CNN 与 AgroNT 大模型统一基准对比** → 可解释性（归因/区域重要性/TF-MoDISco）→ **in silico 变异效应预测与 eQTL 验证** → **组织异质性 / 变异分区补充分析**（无需重训）。
 
 ---
 
@@ -174,3 +174,9 @@ DeepSHAP 对文本输入（AgroNT）需 token 级归因，脚手架默认对 CNN
 2. 自建数据集（TAIR10 + 表达矩阵）用于「区域重要性 + 多组织」分析，PGB 用于统一基准。
 3. 变异效应是差异化亮点：优先跑通 `in_silico.py` → `validate.py`，产出图 5。
 4. 全部跑通后，进入论文撰写（可调用 ccf-paper-writer / 文献核验流程）。
+
+## 补充分析（无需重训）
+```bash
+python analyze_tissue_heterogeneity.py --pgb-dir data/pgb --out-dir results --fig-dir figures
+python analyze_variant_regions.py --scores ../结果表/scores.tsv --eqtl ../结果表/eqtl_scores.tsv --out-dir results --fig-dir figures
+```
