@@ -1,7 +1,0 @@
-n_test = 3402
-CNN    AUROC = 0.8423 (95% CI 0.8284-0.8556)
-AgroNT AUROC = 0.9351 (95% CI 0.9264-0.9423)
-AUROC 差值 (AgroNT-CNN) = 0.0928 (95% CI 0.0827-0.1036)
-AgroNT AUPRC = 0.9291, CNN AUPRC = 0.8345
-McNemar: CNN对/AgroNT错=172, CNN错/AgroNT对=550
-McNemar 双侧 p = 6.527e-47

@@ -1,0 +1,28 @@
+{
+  "promoter": 1000,
+  "utr5": 500,
+  "utr3": 500,
+  "terminator": 1000,
+  "gap": 20,
+  "total_len": 3020,
+  "label_threshold_train": 3.0384923924202436,
+  "high_expr_quantile": 0.5,
+  "chr_split": {
+    "train": [
+      "5",
+      "Chr5"
+    ],
+    "val": [
+      "3",
+      "4",
+      "Chr3",
+      "Chr4"
+    ],
+    "test": [
+      "1",
+      "2",
+      "Chr1",
+      "Chr2"
+    ]
+  }
+}

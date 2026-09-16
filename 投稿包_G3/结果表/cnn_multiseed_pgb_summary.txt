@@ -1,0 +1,4 @@
+n_seeds=3
+AUROC mean=0.8442 std=0.0029
+Accuracy mean=0.7626 std=0.0087
+ckpts=['cnn_pgb_binary.pt', 'cnn_pgb_seed43_binary.pt', 'cnn_pgb_seed44_binary.pt']

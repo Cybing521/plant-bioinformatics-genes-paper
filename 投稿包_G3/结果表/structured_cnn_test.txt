@@ -1,0 +1,6 @@
+source: cnn_npz.log (B-layer, 2026-08-22)
+n_train=6331 n_val=9636 n_test=11469 seq_len=3020
+label_threshold_train=3.038492
+test accuracy=0.6960502223384777
+test auroc=0.8046145086298387
+test auprc=0.770312031661169

@@ -1,0 +1,11 @@
+{
+  "ckpt": "results/models/agront_pgb_3000bp_center_binary.pt",
+  "model": "agront",
+  "data": "pgb",
+  "task": "binary",
+  "seq_len_bp": 3000,
+  "crop_mode": "center",
+  "accuracy": 0.5928865373309817,
+  "auroc": 0.6247363445494378,
+  "auprc": 0.6107416487500577
+}

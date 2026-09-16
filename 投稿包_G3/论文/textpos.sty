@@ -1,0 +1,28 @@
+% Local overlay shim for gsag3jnl logos (TeX Live basic lacks textpos).
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{textpos}[2026/09/16 tikz overlay shim for gsag3jnl]
+\newif\ifTP@absolute
+\DeclareOption{absolute}{\TP@absolutetrue}
+\DeclareOption{overlay}{}
+\ProcessOptions\relax
+\RequirePackage{tikz}
+\newdimen\TPHorizModule
+\newdimen\TPVertModule
+\TPHorizModule=1pt
+\TPVertModule=1pt
+\newcommand{\textblockorigin}[2]{}
+\newenvironment{textblock}[1]{%
+  \def\TP@hsize{#1}%
+  \@ifnextchar(\TP@coord{\TP@coord(0,0)}%
+}{%
+    \end{minipage}%
+  }%
+  \end{tikzpicture}%
+}
+\def\TP@coord(#1,#2){%
+  \begin{tikzpicture}[remember picture,overlay]
+    \node[anchor=north west,inner sep=0pt,outer sep=0pt]
+      at ([xshift=#1\TPHorizModule,yshift=-#2\TPVertModule]current page.north west)
+      {\begin{minipage}{\TP@hsize\TPHorizModule}%
+}
+\endinput

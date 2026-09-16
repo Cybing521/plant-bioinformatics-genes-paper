@@ -1,9 +1,0 @@
-n_genes_unique = 32534
-n_tissues_or_samples = 56
-train_gene_mean_median_threshold = 5.604675
-gene_mean_expression: median=5.6446, IQR=[0.8239, 8.9494]
-cross_tissue_CV: median=0.3398, Q75=1.3676
-fraction_genes_CV>=Q75 = 0.2305
-pairwise_tissue_Spearman: median=0.8509, IQR=[0.8026, 0.8982]
-avg_label_vs_tissue_label agreement: mean=0.9206, min=0.7867, max=0.9543
-tissue_vs_gene_mean Spearman: mean=0.9157, min=0.6565

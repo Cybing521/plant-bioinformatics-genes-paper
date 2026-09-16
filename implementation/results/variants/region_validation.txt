@@ -1,4 +1,0 @@
-n_UTR=6690, n_terminator=13573
-UTR |Δ| 中位数=0.0017 vs 终止子=0.0006
-Mann-Whitney (UTR>终止子): U=53589970, p=4.295e-98
-区域重要性序 vs |Δ|序 Spearman: rho=-0.800, p=0.200

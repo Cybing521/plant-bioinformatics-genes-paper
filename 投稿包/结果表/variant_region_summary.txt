@@ -1,7 +1,0 @@
-n_scored_nongap = 27662
-UTR_pooled median_|Δ| = 0.001696 (n=6690)
-promoter median_|Δ| = 0.000427 (n=7399)
-terminator median_|Δ| = 0.000584 (n=13573)
-MWU UTR>terminator: U=53589970, p=4.295e-98
-MWU UTR>promoter: U=30026512, p=1.360e-106
-n_eqtl_mapped=17; n_eqtl_p<1e-5=17; median_|Δ|_eqtl=0.002047 vs background=0.000647; MWU(eqtl>bg) p=4.069e-02

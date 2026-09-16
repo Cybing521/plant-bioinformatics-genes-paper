@@ -1,0 +1,6 @@
+region,importance_per_bp,method,window,step,n
+promoter,0.059895448826486244,sliding_window_N,50,25,200
+utr5,0.07307375528803094,sliding_window_N,50,25,200
+gap,0.04357962134294212,sliding_window_N,50,25,200
+utr3,0.05691789517365396,sliding_window_N,50,25,200
+terminator,0.06575368582066149,sliding_window_N,50,25,200

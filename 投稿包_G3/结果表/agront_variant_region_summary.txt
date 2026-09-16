@@ -1,0 +1,11 @@
+n_scored_nongap = 26518
+UTR_pooled median_|Δ| = 0.001039 (n=6471)
+promoter median_|Δ| = 0.000539 (n=7089)
+terminator median_|Δ| = 0.002024 (n=12958)
+MWU UTR>terminator: U=29129542, p=1.000e+00
+MWU UTR>promoter: U=30868144, p=3.433e-266
+MWU terminator>utr3: U=32247602, p=3.372e-122
+MWU terminator>utr5: U=22474073.5, p=1.930e-221
+NOTE: the next line used CNN abs_delta vs AgroNT three-alt background (script fallback); do not cite.
+n_eqtl_mapped=17; n_eqtl_p<1e-5=17; median_|Δ|_eqtl=0.002047 vs background=0.001130; MWU(eqtl>bg) p=1.929e-01
+CORRECT AgroNT exact-allele eQTL: median agront_abs_delta=0.000818 vs three-alt background=0.001133; MWU(eqtl>bg) p=0.951

@@ -1,0 +1,15 @@
+% Local shim: TEXMFHOME changepage.sty is a CTAN HTML 404 page.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{changepage}[2026/09/16 adjustwidth shim for gsag3jnl]
+\newenvironment{adjustwidth}[2]{%
+  \list{}{%
+    \topsep\z@
+    \listparindent\parindent
+    \parsep\parskip
+    \setlength{\leftmargin}{#1}%
+    \setlength{\rightmargin}{#2}%
+  }%
+  \item\relax
+}{\endlist}
+\newenvironment{adjustwidth*}[2]{\begin{adjustwidth}{#1}{#2}}{\end{adjustwidth}}
+\endinput
