@@ -1,0 +1,11 @@
+n_tissues = 56
+mean_agreement = 0.920566
+sd = 0.0308857
+median = 0.924848
+iqr = 0.047581
+min = 0.786654
+max = 0.954294
+bootstrap_ci95_lo = 0.912206
+bootstrap_ci95_hi = 0.928101
+n_boot = 10000
+bootstrap_unit = tissues/samples (n=56), not genes

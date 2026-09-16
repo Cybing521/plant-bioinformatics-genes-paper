@@ -1,0 +1,63 @@
+=== CNN region descriptives ===
+    region     n     mean       sd   median  median_ci95_lo  median_ci95_hi      iqr
+      utr5  2542 0.006760 0.011464 0.002688        0.002427        0.002914 0.007439
+      utr3  4148 0.003764 0.006745 0.001117        0.000990        0.001252 0.004955
+  promoter  7399 0.001773 0.004448 0.000427        0.000400        0.000454 0.001460
+terminator 13573 0.002468 0.004817 0.000584        0.000553        0.000626 0.002889
+
+=== CNN pairwise two-sided MW + BH-FDR ===
+region_a   region_b  n_a   n_b  median_a  median_b          U   p_two_sided  rank_biserial          q_bh
+    utr5       utr3 2542  4148  0.002688  0.001117  6535532.5  2.300817e-61       0.239643  4.601633e-61
+    utr5   promoter 2542  7399  0.002688  0.000427 13240115.5 2.253623e-207       0.407904 1.352174e-206
+    utr5 terminator 2542 13573  0.002688  0.000584 23204725.5 2.421464e-169       0.345101 7.264392e-169
+    utr3   promoter 4148  7399  0.001117  0.000427 16786397.0  4.935142e-17       0.093895  7.402713e-17
+    utr3 terminator 4148 13573  0.001117  0.000584 30385244.5  6.886326e-15       0.079389  8.263591e-15
+promoter terminator 7399 13573  0.000427  0.000584 49668482.0  1.928966e-01      -0.010850  1.928966e-01
+
+=== AgroNT region descriptives ===
+    region     n     mean       sd   median  median_ci95_lo  median_ci95_hi      iqr
+      utr5  2474 0.001269 0.001298 0.000851        0.000807        0.000888 0.001323
+      utr3  3997 0.002090 0.003025 0.001181        0.001126        0.001241 0.001821
+  promoter  7089 0.000784 0.000823 0.000539        0.000525        0.000556 0.000694
+terminator 12958 0.004108 0.006250 0.002024        0.001962        0.002075 0.003865
+
+=== AgroNT pairwise two-sided MW + BH-FDR ===
+region_a   region_b  n_a   n_b  median_a  median_b          U   p_two_sided  rank_biserial          q_bh
+    utr5       utr3 2474  3997  0.000851  0.001181  4019000.5  8.655589e-37      -0.187143  8.655589e-37
+    utr5   promoter 2474  7089  0.000851  0.000539 10822061.0  1.534109e-67       0.234114  1.840931e-67
+    utr5 terminator 2474 12958  0.000851  0.002024  9584018.5 3.859420e-221      -0.402084 7.718840e-221
+    utr3   promoter 3997  7089  0.001181  0.000539 20046083.5 4.797864e-289       0.414948 1.439359e-288
+    utr3 terminator 3997 12958  0.001181  0.002024 19545524.0 6.744049e-122      -0.245246 1.011607e-121
+promoter terminator 7089 12958  0.000539  0.002024 19594058.0  0.000000e+00      -0.573390  0.000000e+00
+
+=== Tissue-averaged vs single-tissue labels ===
+n_tissues = 56
+mean_agreement = 0.920566
+sd = 0.0308857
+median = 0.924848
+iqr = 0.047581
+min = 0.786654
+max = 0.954294
+bootstrap_ci95_lo = 0.912206
+bootstrap_ci95_hi = 0.928101
+n_boot = 10000
+bootstrap_unit = tissues/samples (n=56), not genes
+
+=== eQTL exploratory ===
+n_eqtl = 17
+median_eqtl = 0.00204703
+median_background = 0.000646666
+mwu_U = 292434
+mwu_p_greater = 0.0406924
+permutation_p_median = 0.0586941
+n_perm = 10000
+note = exploratory; n=17; do not use as confirmatory evidence
+
+=== Seeds ===
+cnn_n_seeds = 3
+cnn_auroc_mean = 0.844183
+cnn_auroc_sd = 0.00292031
+cnn_accuracy_mean = 0.762591
+cnn_accuracy_sd = 0.00868174
+agront_n_seeds = 1
+agront_seed = 42

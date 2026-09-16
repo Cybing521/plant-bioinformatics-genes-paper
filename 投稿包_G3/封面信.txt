@@ -2,14 +2,14 @@ Dear Editor,
 
 Please consider this Investigation for G3: Genes|Genomes|Genetics.
 
-The manuscript reports a locked comparison, in Arabidopsis thaliana, of a compact DeepSEA-style convolutional network with AgroNT fine-tuned by low-rank adaptation. Both models predict tissue-averaged high-versus-low gene expression from public Plants Genomic Benchmark sequence windows. Complementary tests locate predictive signal in annotated flanks and ask whether the Arabidopsis ranking holds on independent rice, maize, tomato, and soybean test sets.
+The manuscript reports a locked comparison, in Arabidopsis thaliana, of a compact DeepSEA-style convolutional network with AgroNT fine-tuned by low-rank adaptation. Both models predict tissue-averaged high-versus-low gene expression from public Plants Genomic Benchmark sequence windows. Complementary tests locate predictive signal in annotated flanks and ask whether the Arabidopsis ranking holds when the same checkpoints are applied to rice, maize, tomato, and soybean test sets. Crop tests are adapter transfer, not species-unseen evaluation, because AgroNT pretraining included those genomes.
 
 G3 publishes statistical and computational methods that generate useful genetic information. This study is a reproducible performance-and-cost reference for plant geneticists choosing a sequence-to-expression scorer. It does not include wet-lab validation and does not claim a causal cis-regulatory atlas.
 
 Suggested article type: Investigation.
 Suggested series: Plant Genetics and Genomics.
 
-All primary datasets are public. Processed tables are File S1. Code is included with the submission; an archival DOI will be provided before acceptance.
+Primary datasets are public. Processed tables are File S1. Code is at https://github.com/Cybing521/plant-bioinformatics-genes-paper. Fine-tuned checkpoints are not deposited; they are reproduced by retraining from the public AgroNT-1B backbone.
 
 The authors have no conflicts of interest. This work is not under consideration elsewhere.
 

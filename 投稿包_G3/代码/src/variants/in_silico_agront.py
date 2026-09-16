@@ -49,6 +49,8 @@ def main():
     ap.add_argument("--variants", default=None,
                     help="可选 chr/pos/ref/alt/gene_id/flank_pos；有则按精确等位打分")
     ap.add_argument("--eqtl", default="results/variants/eqtl_scores.tsv")
+    ap.add_argument("--allele-mode", choices=["exact", "all_alts"], default="exact",
+                    help="exact=单碱基 ref vs alt（与 CNN 对齐）；all_alts=三非参考碱基均值（旧协议）")
     ap.add_argument("--batch", type=int, default=8)
     ap.add_argument("--out", default="results/variants/agront_scores.tsv")
     ap.add_argument("--eqtl-out", default="results/variants/agront_eqtl_scores.tsv")
@@ -72,7 +74,9 @@ def main():
 
     jobs = []  # dicts
     vpath = args.variants or cfg["variants"].get("variants_tsv")
-    use_exact = bool(vpath and os.path.exists(vpath))
+    use_exact = args.allele_mode == "exact" and bool(vpath and os.path.exists(vpath))
+    if args.allele_mode == "exact" and not use_exact:
+        logger.warning("exact 模式需要带 alt 的 variants 表，改用 all_alts")
     if use_exact:
         vdf = pd.read_csv(vpath, sep="\t")
         need = {"gene_id", "flank_pos", "alt"}

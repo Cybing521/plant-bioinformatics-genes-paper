@@ -47,6 +47,8 @@ def main():
     ap.add_argument("--task", default="binary", choices=["binary", "regression"])
     ap.add_argument("--models", nargs="+", default=["cnn", "agront"],
                     help="要评估的模型（存在对应权重才评估）")
+    ap.add_argument("--save-preds", default=None,
+                    help="可选 npz：y_true 与各模型概率，供 DeLong/校准/10000-bootstrap")
     args = ap.parse_args()
 
     import yaml
@@ -68,6 +70,7 @@ def main():
                         "test", args.task)
 
     rows = []
+    pred_blob = {}
     for kind in args.models:
         ckpt_path = f"results/models/{kind}_{args.data}_{args.task}.pt"
         if not os.path.exists(ckpt_path):
@@ -95,7 +98,10 @@ def main():
                 ys.append(y.numpy())
         ys = np.concatenate(ys)
         if args.task == "binary":
-            m = compute_metrics(ys, np.concatenate(probs))
+            probs = np.concatenate(probs)
+            pred_blob["y_true"] = ys
+            pred_blob[f"p_{kind}"] = probs
+            m = compute_metrics(ys, probs)
         else:
             m = compute_metrics(ys, np.zeros_like(ys), ys, np.concatenate(regs))
         m.update({"model": kind, "task": args.task})
@@ -108,6 +114,9 @@ def main():
     out = cfg["eval"]["out_csv"]
     df.to_csv(out, index=False)
     logger.info("指标已保存 -> %s", out)
+    if args.save_preds and pred_blob:
+        np.savez_compressed(args.save_preds, **pred_blob)
+        logger.info("预测已保存 -> %s", args.save_preds)
 
     # --- 绘图（图 3：分类指标对比 + 性能-成本） ---
     if args.task == "binary":

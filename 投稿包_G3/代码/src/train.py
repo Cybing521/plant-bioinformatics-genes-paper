@@ -48,13 +48,15 @@ def main():
     ap.add_argument("--config", default="configs/config.yaml")
     ap.add_argument("--model", default="cnn", choices=["cnn"])
     ap.add_argument("--data", default="pgb", choices=["pgb", "npz"])
-    ap.add_argument("--task", default="binary", choices=["binary", "regression"])
+    ap.add_argument("--task", default="binary", choices=["binary", "regression", "multitissue"])
     ap.add_argument("--epochs", type=int, default=None)
     ap.add_argument("--batch_size", type=int, default=None)
     ap.add_argument("--max_seq_len", type=int, default=None,
                     help="覆盖 config 的序列截断长度（用于输入长度消融）")
     ap.add_argument("--crop_mode", default=None, choices=["center", "left"],
                     help="缩短窗口方式；默认 center（基因中心居中裁剪）")
+    ap.add_argument("--seed", type=int, default=None,
+                    help="覆盖 config seed；非 42 时检查点路径带 seed 后缀")
     args = ap.parse_args()
 
     import yaml
@@ -64,9 +66,13 @@ def main():
         cfg["data"]["max_seq_len"] = args.max_seq_len
     if args.crop_mode:
         cfg["data"]["crop_mode"] = args.crop_mode
+    if args.seed is not None:
+        cfg["seed"] = args.seed
     tag = f"_{args.max_seq_len}bp" if args.max_seq_len else ""
     if args.crop_mode:
         tag += f"_{args.crop_mode}"
+    if int(cfg["seed"]) != 42:
+        tag += f"_seed{cfg['seed']}"
     tr = cfg["train"]
     setup_logging()
     set_seed(cfg["seed"])
@@ -81,10 +87,10 @@ def main():
         num_workers=tr["num_workers"])
 
     # --- 模型 ---
-    num_classes = 1
+    num_classes = int(getattr(train_ld.dataset, "n_tissues", 1) or 1) if args.task == "multitissue" else 1
     model = build_cnn(cfg, num_classes=num_classes, task=args.task)
     model.to(device)
-    logger.info("CNN 参数量: %d", sum(p.numel() for p in model.parameters()))
+    logger.info("CNN 参数量: %d  num_classes=%d", sum(p.numel() for p in model.parameters()), num_classes)
 
     loss_fn = nn.BCEWithLogitsLoss() if args.task == "binary" else nn.MSELoss()
     opt = torch.optim.AdamW(model.parameters(), lr=tr["lr"], weight_decay=tr["weight_decay"])

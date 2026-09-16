@@ -1,0 +1,8 @@
+n_eqtl = 17
+median_eqtl = 0.00204703
+median_background = 0.000646666
+mwu_U = 292434
+mwu_p_greater = 0.0406924
+permutation_p_median = 0.0586941
+n_perm = 10000
+note = exploratory; n=17; do not use as confirmatory evidence

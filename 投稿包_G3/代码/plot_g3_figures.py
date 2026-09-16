@@ -443,7 +443,7 @@ def plot_fig1() -> None:
           "\n16.2 M of 985 M (1.6%)"
           "\n"
           r"AdamW $2\times10^{-4}$, 3 epochs, 240 min"
-          "\nseed 42", size=6.4)
+          "\nseed 42 only", size=6.4)
     _box(ax_b, *note_mod, lw=1.0)
     _arrow(ax_b, (agro[2], 0.5 * (agro[1] + agro[3])), (note_mod[0], 0.5 * (note_mod[1] + note_mod[3])))
     _text(ax_b, 0.5 * (note_mod[0] + note_mod[2]), 0.5 * (note_mod[1] + note_mod[3]),
@@ -454,9 +454,9 @@ def plot_fig1() -> None:
     _text(ax_b, 0.5 * (read[0] + read[2]), 1.78, "Four locked readouts", size=8.0, weight="bold")
     _text(ax_b, 0.5 * (read[0] + read[2]), 0.92,
           "1. Arabidopsis test n=3,402  —  AUROC 0.842 vs 0.939; McNemar 532 vs 142"
-          "\n2. Region importance  —  50-bp N mutagenesis + DeepLift + TF-MoDISco"
+          "\n2. Region maps  —  exploratory; allele protocols differ by architecture"
           "\n3. Natural SNVs  —  250 genes; CNN 27,662 sites; AgroNT 26,518 sites"
-          "\n4. Crop PGB tests  —  rice, maize, tomato, soybean; no crop fine-tuning",
+          "\n4. Crop PGB transfer  —  rice, maize, tomato, soybean; AgroNT saw those genomes",
           size=6.5)
 
     save_fig(fig, "Figure1", tight=False)
@@ -538,7 +538,7 @@ def plot_fig2() -> None:
     ax_c.set_xticks([0.0], ["AUROC"])
     ax_c.set_ylabel("Test AUROC")
     ax_c.set_ylim(0.828, 0.955)
-    ax_c.set_title("CNN three seeds (42 / 43 / 44)", fontsize=8, pad=3)
+    ax_c.set_title("CNN three seeds; AgroNT is seed 42", fontsize=8, pad=3)
     style_axis(ax_c)
     panel_letter(ax_c, "c")
 
@@ -568,9 +568,8 @@ def plot_fig3() -> None:
     dl = pd.read_csv(INTERP / "region_importance.csv")
     dl = dl[dl["region"] != "gap"].set_index("region")
     mm = pd.read_csv(TABLES / "same_method_region_importance.csv").set_index("region")
-    eqtl = pd.read_csv(TABLES / "eqtl_scores.tsv", sep="\t")
-    bg_med = float(np.median(cnn["abs_delta"]))
-    eq_med = float(np.median(eqtl["abs_delta"]))
+    desc = pd.read_csv(TABLES / "variant_region_descriptives.csv").set_index("region")
+    desc_a = pd.read_csv(TABLES / "agront_variant_region_descriptives.csv").set_index("region")
 
     fig = plt.figure(figsize=(7.35, 7.55))
     outer = fig.add_gridspec(
@@ -639,26 +638,30 @@ def plot_fig3() -> None:
     style_axis(ax_mu)
     panel_letter(ax_mu, "d", -0.08, 1.05)
 
-    eq_vals = eqtl["abs_delta"].to_numpy(dtype=float)
-    bg_vals = cnn["abs_delta"].to_numpy(dtype=float)
-    bp = ax_eq.boxplot(
-        [bg_vals, eq_vals], tick_labels=[f"Background\n{bg_med:.4f}", f"eQTL n=17\n{eq_med:.4f}"],
-        showfliers=False, patch_artist=True, widths=0.55,
-        medianprops=dict(color=INK, linewidth=1.1),
-        whiskerprops=dict(color="#4A4A4A", linewidth=0.8),
-        capprops=dict(color="#4A4A4A", linewidth=0.8),
+    y = np.arange(len(REGION_ORDER), dtype=float)
+    cnn_med = np.array([float(desc.loc[r, "median"]) for r in REGION_ORDER])
+    cnn_lo = np.array([float(desc.loc[r, "median_ci95_lo"]) for r in REGION_ORDER])
+    cnn_hi = np.array([float(desc.loc[r, "median_ci95_hi"]) for r in REGION_ORDER])
+    agro_med = np.array([float(desc_a.loc[r, "median"]) for r in REGION_ORDER])
+    agro_lo = np.array([float(desc_a.loc[r, "median_ci95_lo"]) for r in REGION_ORDER])
+    agro_hi = np.array([float(desc_a.loc[r, "median_ci95_hi"]) for r in REGION_ORDER])
+    ax_eq.errorbar(
+        cnn_med, y + 0.12, xerr=[cnn_med - cnn_lo, cnn_hi - cnn_med],
+        fmt="o", color=C_CNN, ms=5.5, lw=1.1, capsize=2.2, label="CNN",
     )
-    for patch, col in zip(bp["boxes"], ("#B0B0B0", ACCENT)):
-        patch.set_facecolor(col)
-        patch.set_alpha(0.4)
-        patch.set_edgecolor(EDGE)
-    ax_eq.set_ylabel("|Δ|  (CNN)")
-    ax_eq.set_title("eQTL overlap  p = 0.041", fontsize=8, pad=2)
+    ax_eq.errorbar(
+        agro_med, y - 0.12, xerr=[agro_med - agro_lo, agro_hi - agro_med],
+        fmt="o", color=C_AGRONT, ms=5.5, lw=1.1, capsize=2.2, label="AgroNT",
+    )
+    ax_eq.set_yticks(y, [REGION_LAB[r] for r in REGION_ORDER])
+    ax_eq.set_xlabel("Median |Δ| (bootstrap 95% CI)")
+    ax_eq.set_title("Region medians, not cross-model", fontsize=7.4, pad=2)
+    ax_eq.legend(frameon=False, fontsize=6.0, loc="lower right", handlelength=1.2)
     style_axis(ax_eq)
-    ax_eq.tick_params(axis="x", length=0, labelsize=6.2)
+    ax_eq.tick_params(axis="y", length=0)
     panel_letter(ax_eq, "e", -0.08, 1.05)
 
-    box_region(ax_b1, cnn, r"$P=1.2\times10^{-61}$")
+    box_region(ax_b1, cnn, r"$q=4.6\times10^{-61}$")
     ax_b1.set_ylabel("|Δ|  CNN")
     ax_b1.set_title("Mapped alternate allele  (n=27,662)", fontsize=7.4, pad=2)
     panel_letter(ax_b1, "f", -0.08, 1.05)
@@ -722,7 +725,7 @@ def plot_fig4() -> None:
     ax_a.set_ylabel("AUROC")
     ax_a.set_ylim(0.62, 1.05)
     ax_a.legend(frameon=False, loc="upper right", handlelength=1.2)
-    ax_a.set_title("Arabidopsis checkpoints on PGB tests", fontsize=8, pad=3)
+    ax_a.set_title("Cross-species transfer of Arabidopsis checkpoints", fontsize=7.6, pad=3)
     style_axis(ax_a)
     panel_letter(ax_a, "a")
 
@@ -733,7 +736,8 @@ def plot_fig4() -> None:
     ax_b.set_yticks(x[::-1], prefer[::-1])
     ax_b.set_xlabel("ΔAUROC (AgroNT − CNN)")
     ax_b.set_xlim(0, max(delta) * 1.28)
-    ax_b.set_title("Same ranking on every species", fontsize=8, pad=3)
+    ax_b.axvline(0, color="#C0C0C0", lw=0.7)
+    ax_b.set_title("ΔAUROC; not a species-unseen test", fontsize=7.6, pad=3)
     style_axis(ax_b)
     ax_b.tick_params(axis="y", length=0)
     panel_letter(ax_b, "b", -0.08)
@@ -812,8 +816,8 @@ def plot_figs1() -> None:
     ax_a.hlines(yy, 0.78, agree[order], color="#D0D0D0", lw=0.65, zorder=1)
     ax_a.scatter(agree[order], yy, s=16, color=C_AGRONT, edgecolors="white", lw=0.3, zorder=3)
     ax_a.axvline(mean_agree, color=ACCENT, ls=(0, (4, 2)), lw=1.15, zorder=4)
-    ax_a.text(mean_agree - 0.006, len(agree) * 0.97, f"mean {mean_agree:.3f}",
-              color=ACCENT, fontsize=6.4, ha="right", va="top")
+    ax_a.text(mean_agree - 0.006, len(agree) * 0.97, "mean 0.921\nCI 0.912–0.928",
+              color=ACCENT, fontsize=6.2, ha="right", va="top")
     ax_a.set_xlabel("Agreement with mean label")
     ax_a.set_ylabel("Tissues / samples (sorted)")
     ax_a.set_yticks([])
@@ -859,12 +863,46 @@ def plot_figs1() -> None:
     save_fig(fig, "FigureS1", tight=False)
 
 
+def plot_figs2() -> None:
+    """Exploratory eQTL overlap; not a main-text claim."""
+    apply_g3_style()
+    cnn, _ = load_variant_frames()
+    eqtl = pd.read_csv(TABLES / "eqtl_scores.tsv", sep="\t")
+    bg_med = float(np.median(cnn["abs_delta"]))
+    eq_med = float(np.median(eqtl["abs_delta"]))
+    fig, ax = plt.subplots(figsize=(3.6, 3.4))
+    bp = ax.boxplot(
+        [cnn["abs_delta"].to_numpy(dtype=float), eqtl["abs_delta"].to_numpy(dtype=float)],
+        tick_labels=[f"Background\n{bg_med:.4f}", f"eQTL n=17\n{eq_med:.4f}"],
+        showfliers=False, patch_artist=True, widths=0.55,
+        medianprops=dict(color=INK, linewidth=1.1),
+        whiskerprops=dict(color="#4A4A4A", linewidth=0.8),
+        capprops=dict(color="#4A4A4A", linewidth=0.8),
+    )
+    for patch, col in zip(bp["boxes"], ("#B0B0B0", ACCENT)):
+        patch.set_facecolor(col)
+        patch.set_alpha(0.4)
+        patch.set_edgecolor(EDGE)
+    ax.set_ylabel(r"CNN $|\Delta|$")
+    ax.set_title("Exploratory eQTL overlap", fontsize=8, pad=3)
+    ax.text(
+        0.5, 0.96,
+        "MW p=0.041; 10,000-permutation p=0.059\nnot used as confirmatory evidence",
+        transform=ax.transAxes, ha="center", va="top", fontsize=6.2, color=MUTED,
+    )
+    style_axis(ax)
+    ax.tick_params(axis="x", length=0, labelsize=6.2)
+    fig.subplots_adjust(left=0.22, right=0.97, top=0.86, bottom=0.18)
+    save_fig(fig, "FigureS2", tight=False)
+
+
 def main() -> None:
     plot_fig1()
     plot_fig2()
     plot_fig3()
     plot_fig4()
     plot_figs1()
+    plot_figs2()
     print("wrote", OUT_PAPER)
     print("wrote", OUT_PACK)
 

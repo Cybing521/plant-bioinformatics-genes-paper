@@ -26,8 +26,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", default="configs/config.yaml")
     ap.add_argument("--n-test", type=int, default=50, help="测试序列数")
-    ap.add_argument("--window", type=int, default=150, help="突变窗口宽度(bp)")
-    ap.add_argument("--step", type=int, default=100, help="窗口步长(bp)")
+    ap.add_argument("--window", type=int, default=50, help="突变窗口宽度(bp)；与 CNN 对齐")
+    ap.add_argument("--step", type=int, default=25, help="窗口步长(bp)；与 CNN 对齐")
     args = ap.parse_args()
 
     import yaml

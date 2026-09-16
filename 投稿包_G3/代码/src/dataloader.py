@@ -75,8 +75,9 @@ class PGBFastaDataset(Dataset):
         path = os.path.join(base_dir, f"{species}_{split}.fa")
         if not os.path.exists(path):
             raise FileNotFoundError(f"缺少 PGB FASTA: {path}\n请先运行 python data/download_pgb.py")
-        seqs, exprs = [], []
+        seqs, exprs, mats = [], [], []
         cur = None
+        n_tissues = None
         with open(path) as f:
             for line in f:
                 line = line.rstrip("\n")
@@ -85,6 +86,9 @@ class PGBFastaDataset(Dataset):
                         seqs.append(cur)
                     fields = line[1:].split("|")
                     vals = [float(v) for v in fields[1:]]
+                    if n_tissues is None:
+                        n_tissues = len(vals)
+                    mats.append(vals)
                     exprs.append(float(np.mean(vals)) if vals else 0.0)
                     cur = ""
                 elif cur is not None:
@@ -93,6 +97,8 @@ class PGBFastaDataset(Dataset):
                 seqs.append(cur)
         self.seqs = seqs
         self.expr = np.asarray(exprs, dtype=np.float32)
+        self.expr_mat = np.asarray(mats, dtype=np.float32) if mats else None
+        self.n_tissues = int(n_tissues or 0)
         self.median = median if median is not None else float(np.median(self.expr))
         self.max_seq_len = max_seq_len
         self.crop_mode = crop_mode
@@ -110,6 +116,8 @@ class PGBFastaDataset(Dataset):
         x = torch.from_numpy(onehot_seq(seq))
         if self.task == "binary":
             y = torch.tensor(float(self.expr[i] >= self.median), dtype=torch.float32)
+        elif self.task == "multitissue":
+            y = torch.from_numpy(self.expr_mat[i])
         else:
             y = torch.tensor(self.expr[i], dtype=torch.float32)
         return x, y
@@ -163,6 +171,8 @@ def load_text_splits(cfg, mode="pgb", task="binary", hf_ds=None, max_seq_len=Non
             seqs = [crop_seq(s, max_seq_len, crop_mode) if max_seq_len else s for s in ds.seqs]
             if task == "binary":
                 labels = (ds.expr >= ds.median).astype(np.float32)
+            elif task == "multitissue":
+                labels = ds.expr_mat
             else:
                 labels = ds.expr
             out.append((seqs, labels))

@@ -72,26 +72,30 @@ def main():
         )
     stats = pd.DataFrame(rows).sort_values("median_abs_delta", ascending=False)
 
-    # pairwise Mann-Whitney (greater)
+    from scipy.stats import false_discovery_control
+
     order = ["utr5", "utr3", "promoter", "terminator"]
     pairs = []
     for i, a in enumerate(order):
         for b in order[i + 1 :]:
             xa = df_nongap.loc[df_nongap["region"] == a, "abs_delta"].values
             xb = df_nongap.loc[df_nongap["region"] == b, "abs_delta"].values
-            u, p = mannwhitneyu(xa, xb, alternative="greater")
+            u, p = mannwhitneyu(xa, xb, alternative="two-sided")
+            n1, n2 = len(xa), len(xb)
             pairs.append(
                 {
                     "region_a": a,
                     "region_b": b,
-                    "hypothesis": f"{a} > {b}",
+                    "hypothesis": f"{a} vs {b}",
                     "U": float(u),
                     "p": float(p),
+                    "rank_biserial": (2.0 * float(u)) / (n1 * n2) - 1.0,
                     "median_a": float(np.median(xa)),
                     "median_b": float(np.median(xb)),
                 }
             )
     pair_df = pd.DataFrame(pairs)
+    pair_df["q_bh"] = false_discovery_control(pair_df["p"].to_numpy(), method="bh")
 
     # UTR pooled vs terminator / promoter
     utr = df_nongap.loc[df_nongap["region"].isin(["utr5", "utr3"]), "abs_delta"].values

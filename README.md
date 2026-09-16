@@ -12,4 +12,4 @@ The submission pack is `投稿包_G3/`. Details: `投稿包_G3/投稿说明.md`.
 | Processed tables (File S1) | `投稿包_G3/结果表/` |
 | Code | `投稿包_G3/代码/` |
 
-PGB FASTA, TAIR10, and model weights are not stored here. Download commands are in `投稿包_G3/代码/README.md`. Data availability in the manuscript is a placeholder until an archival DOI is added.
+PGB FASTA, TAIR10, and **fine-tuned model weights are not stored here**. Download commands are in `投稿包_G3/代码/README.md`. Public code lives at https://github.com/Cybing521/plant-bioinformatics-genes-paper. Checkpoints stay local (`results/models/`, gitignored) and are reproduced by retraining from the public AgroNT-1B backbone.

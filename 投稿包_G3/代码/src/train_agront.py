@@ -30,7 +30,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", default="configs/config.yaml")
     ap.add_argument("--data", default="pgb", choices=["pgb", "npz"])
-    ap.add_argument("--task", default="binary", choices=["binary", "regression"])
+    ap.add_argument("--task", default="binary", choices=["binary", "regression", "multitissue"])
     ap.add_argument("--epochs", type=int, default=None)
     ap.add_argument("--max_seq_len", type=int, default=None,
                     help="覆盖 agront_train.max_seq_len，用于居中裁剪长度消融")
@@ -40,6 +40,9 @@ def main():
                     help="检查点路径；默认 results/models/agront_{data}[_{len}bp_{crop}][_{seed}]_{task}.pt")
     ap.add_argument("--seed", type=int, default=None,
                     help="覆盖 config seed；非 42 时默认检查点路径带 seed 后缀，避免覆盖主表")
+    ap.add_argument("--lora-r", type=int, default=None)
+    ap.add_argument("--lora-alpha", type=int, default=None)
+    ap.add_argument("--target-modules", nargs="+", default=None)
     ap.add_argument("--print_modules", action="store_true",
                     help="打印 backbone 模块名并退出（核对 target_modules）")
     ap.add_argument("--resume", action="store_true",
@@ -57,6 +60,12 @@ def main():
         cfg["data"]["crop_mode"] = args.crop_mode
     if args.seed is not None:
         cfg["seed"] = args.seed
+    if args.lora_r is not None:
+        cfg["model"]["agront"]["lora_r"] = args.lora_r
+    if args.lora_alpha is not None:
+        cfg["model"]["agront"]["lora_alpha"] = args.lora_alpha
+    if args.target_modules is not None:
+        cfg["model"]["agront"]["target_modules"] = list(args.target_modules)
     crop_mode = cfg.get("data", {}).get("crop_mode", "center")
     tag = ""
     if args.max_seq_len:
@@ -64,12 +73,15 @@ def main():
     if args.crop_mode:
         tag += f"_{args.crop_mode}"
     seed_tag = f"_seed{cfg['seed']}" if int(cfg["seed"]) != 42 else ""
-    ckpt_path = args.out_ckpt or f"results/models/agront_{args.data}{tag}{seed_tag}_{args.task}.pt"
+    r = int(cfg["model"]["agront"]["lora_r"])
+    lora_tag = f"_r{r}" if r != 16 else ""
+    ckpt_path = args.out_ckpt or f"results/models/agront_{args.data}{tag}{seed_tag}{lora_tag}_{args.task}.pt"
     setup_logging()
     set_seed(cfg["seed"])
     device = get_device(cfg["train"]["device"])
-    logger.info("设备: %s  seed=%s max_seq_len=%s crop=%s ckpt=%s",
-                device, cfg["seed"], at.get("max_seq_len"), crop_mode, ckpt_path)
+    logger.info("设备: %s  seed=%s max_seq_len=%s crop=%s lora_r=%s ckpt=%s",
+                device, cfg["seed"], at.get("max_seq_len"), crop_mode,
+                cfg["model"]["agront"]["lora_r"], ckpt_path)
 
     # --- 数据（文本序列） ---
     from dataloader import load_text_splits, TextSeqDataset
@@ -83,9 +95,12 @@ def main():
                          batch_size=at["batch_size"])
 
     # --- 模型 ---
+    n_classes = 1
+    if args.task == "multitissue":
+        n_classes = int(np.asarray(tr_y).shape[1])
     model = AgroNTClassifier(
         model_id=cfg["model"]["agront"]["model_id"],
-        num_classes=1, task=args.task,
+        num_classes=n_classes, task=args.task,
         lora_r=cfg["model"]["agront"]["lora_r"],
         lora_alpha=cfg["model"]["agront"]["lora_alpha"],
         lora_dropout=cfg["model"]["agront"]["lora_dropout"],
@@ -191,6 +206,8 @@ def main():
         "seq_len_bp": at.get("max_seq_len"),
         "crop_mode": crop_mode,
         "seed": int(cfg["seed"]),
+        "lora_r": int(cfg["model"]["agront"]["lora_r"]),
+        "lora_alpha": int(cfg["model"]["agront"]["lora_alpha"]),
         **{k: float(v) for k, v in test_m.items()},
     }
     with open(metrics_path, "w") as f:
