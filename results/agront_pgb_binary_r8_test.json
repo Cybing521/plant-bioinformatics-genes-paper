@@ -1,0 +1,20 @@
+{
+  "ckpt": "results/models/agront_pgb_binary_r8.pt",
+  "model": "agront",
+  "data": "pgb",
+  "task": "binary",
+  "seq_len_bp": 6000,
+  "crop_mode": "center",
+  "seed": 42,
+  "lora_r": 8,
+  "lora_alpha": 16,
+  "accuracy": 0.8539094650205762,
+  "balanced_accuracy": 0.8528104115030539,
+  "f1": 0.8633489139400605,
+  "mcc": 0.7102822516978518,
+  "brier": 0.10798942861805243,
+  "prevalence": 0.510875940322876,
+  "auprc_baseline": 0.510875940322876,
+  "auroc": 0.9353558328538549,
+  "auprc": 0.934151478282535
+}

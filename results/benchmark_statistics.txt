@@ -1,0 +1,9 @@
+n_test = 3402
+prevalence = 0.5109 (AUPRC chance = prevalence)
+CNN    AUROC = 0.8423 (95% CI 0.8289-0.8553)  acc=0.7537  MCC=0.5115  Brier=0.1646  ECE=0.0495
+AgroNT AUROC = 0.9391 (95% CI 0.9310-0.9467)  acc=0.8683  MCC=0.7365  Brier=0.0962  ECE=0.0167
+AUROC 差值 (AgroNT-CNN) bootstrap mean = 0.0968 (95% CI 0.0861-0.1081)
+DeLong z (AgroNT vs CNN) = 17.327, p = 2.918e-67
+AgroNT AUPRC = 0.9346, CNN AUPRC = 0.8345
+McNemar: CNN对/AgroNT错=142, CNN错/AgroNT对=532
+McNemar 双侧 p = 6.661e-54

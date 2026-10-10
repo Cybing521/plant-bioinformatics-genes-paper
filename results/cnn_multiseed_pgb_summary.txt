@@ -1,0 +1,5 @@
+n_seeds=5
+AUROC mean=0.8465 std=0.0038
+Accuracy mean=0.7634 std=0.0062
+AUPRC mean=0.8387 std=0.0056
+seeds=[42, 43, 44, 45, 46]

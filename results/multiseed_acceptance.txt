@@ -1,0 +1,21 @@
+P0 multi-seed acceptance (2026-09-17)
+Split: official PGB Arabidopsis gene_exp, tissue-averaged binary, tau=5.605, n_test=3402.
+Primary paired contrast remains seed 42 (DeLong / McNemar / bootstrap CI).
+Five-seed means use sample SD (ddof=1). Weights stay on GPU servers; not git.
+
+CNN test AUROC: 0.8423, 0.8427, 0.8475, 0.8494, 0.8506  -> 0.8465 ± 0.0038  (paper 0.847±0.004)
+CNN test acc:   0.7537, 0.7631, 0.7710, 0.7651, 0.7640  -> 0.7634 ± 0.0062  (paper 76.3±0.6%)
+AgroNT AUROC:   0.9391, 0.9377, 0.9380, 0.9382, 0.9379  -> 0.9382 ± 0.0006  (paper 0.938±0.001)
+AgroNT acc:     0.8683, 0.8680, 0.8654, 0.8613, 0.8636  -> 0.8653 ± 0.0030  (paper 86.5±0.3%)
+
+Seed 42 paired (authoritative for Table 1 / McNemar / DeLong):
+CNN    AUROC 0.8423 (95% CI 0.8289-0.8553) acc=0.7537 MCC=0.5115 Brier=0.1646 ECE=0.0495
+AgroNT AUROC 0.9391 (95% CI 0.9310-0.9467) acc=0.8683 MCC=0.7365 Brier=0.0962 ECE=0.0167
+Delta AUROC bootstrap mean 0.0968 (95% CI 0.0861-0.1081)
+DeLong z=17.327 p=2.918e-67
+McNemar 142 vs 532 p=6.661e-54
+
+CNN 56-tissue regression (scope check, not locked contest): R2=0.2958 Pearson_mean=0.6018 Spearman_mean=0.5996
+LoRA r=8 alpha=16 (sensitivity, not protocol): test AUROC=0.9354 acc=0.8539
+Deferred (user 2026-09-17): LoRA r=32/64, AgroNT official 56-tissue regression.
+Interpretability remains exploratory (protocol-mismatched). shengxin started agront_npz after seed 44; not ingested.

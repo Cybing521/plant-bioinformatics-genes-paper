@@ -1,0 +1,17 @@
+{
+  "ckpt": "results/models/agront_pgb_binary.pt",
+  "model": "agront",
+  "data": "pgb",
+  "task": "binary",
+  "seq_len_bp": 6000,
+  "crop_mode": "center",
+  "seed": 42,
+  "lora_r": 16,
+  "lora_alpha": 32,
+  "accuracy": 0.8683127572016461,
+  "auroc": 0.9391213513543419,
+  "auprc": 0.9346074599131322,
+  "mcc": 0.7365,
+  "brier": 0.0962,
+  "source": "benchmark_results.csv + benchmark_statistics.txt (paired seed 42)"
+}

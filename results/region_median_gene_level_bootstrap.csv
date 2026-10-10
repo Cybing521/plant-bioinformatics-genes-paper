@@ -1,0 +1,9 @@
+model,region,n_sites,n_genes,median_abs_delta,ci95_lo,ci95_hi,method
+cnn,promoter,7399,126,0.00042707,0.00032618,0.00053074,"gene-level cluster bootstrap, 2000 resamples, seed=42"
+cnn,utr5,2542,148,0.00268844,0.00207812,0.00335828,"gene-level cluster bootstrap, 2000 resamples, seed=42"
+cnn,utr3,4148,212,0.00111722,0.00082083,0.00151616,"gene-level cluster bootstrap, 2000 resamples, seed=42"
+cnn,terminator,13573,187,0.00058365,0.00049419,0.00069315,"gene-level cluster bootstrap, 2000 resamples, seed=42"
+agront,promoter,7089,126,0.00053927,0.00047689,0.00061994,"gene-level cluster bootstrap, 2000 resamples, seed=42"
+agront,utr5,2474,148,0.00085067,0.00069265,0.00100154,"gene-level cluster bootstrap, 2000 resamples, seed=42"
+agront,utr3,3997,212,0.00118124,0.00101666,0.0013681,"gene-level cluster bootstrap, 2000 resamples, seed=42"
+agront,terminator,12958,187,0.00202428,0.00173787,0.00235298,"gene-level cluster bootstrap, 2000 resamples, seed=42"
